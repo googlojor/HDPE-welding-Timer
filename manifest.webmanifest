@@ -1,21 +1,33 @@
 {"name": "Таймер сварщика ПНД",
   "short_name": "ПНД таймер",
+  "description": "Пошаговый таймер для сварки полиэтиленовых труб: нагрев, техпауза, осадка, охлаждение. Расчёт по DVS 2207-1 с температурной поправкой и журналом стыков.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
+  "lang": "ru",
+  "dir": "ltr",
+  "categories": ["utilities", "productivity"],
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "./icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "icon-512.png",
+      "src": "./icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
