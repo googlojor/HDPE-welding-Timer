@@ -346,9 +346,11 @@ document.getElementById('btnBack').onclick = () => {
 };
 
 // PWA
-if ('serviceWorker' in navigator) {  navigator.serviceWorker.register('./sw.js')
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
     .then(() => console.log('SW зарегистрирован'))
-    .catch(err => console.error('Ошибка SW:', err)); }
+    .catch(err => console.warn('SW не зарегистрирован:', err));
+}
 </script>
 </body>
 </html>
