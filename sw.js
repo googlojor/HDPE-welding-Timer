@@ -1,4 +1,4 @@
-const CACHE = 'pnd-timer-v2';
+const CACHE = 'pnd-timer-v3';
 const ASSETS = ['./', './index.html', './manifest.webmanifest'];
 
 self.addEventListener('install', e => {
