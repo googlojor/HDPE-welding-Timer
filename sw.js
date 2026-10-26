@@ -1,4 +1,3 @@
-js
 const CACHE = 'pnd-timer-v2';
 const ASSETS = ['./', './index.html', './manifest.webmanifest'];
 
