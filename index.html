@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<title>Таймер сварщика ПНД</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root{--bg:#0a0a0a;--fg:#f2f2f2;--muted:#888;--heat:#f59e0b;--pause:#ef4444;--weld:#a855f7;--cool:#3b82f6;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Roboto,sans-serif;
+       padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+       display:flex;flex-direction:column;}
+  header{padding:12px 14px;border-bottom:1px solid #1e1e1e;display:flex;gap:10px;align-items:end;flex-wrap:wrap;}
+  header h1{font-size:15px;margin:0;flex:1;line-height:1.1;}
+  .field{display:flex;flex-direction:column;font-size:11px;color:var(--muted);gap:4px;}
+  .field select{font-size:16px;padding:9px 12px;border-radius:10px;background:#181818;color:#fff;border:1px solid #333;min-width:82px;appearance:none;
+    background-image:linear-gradient(45deg,transparent 50%,#888 50%),linear-gradient(135deg,#888 50%,transparent 50%);
+    background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;
+    background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:26px;}
+  main{padding:16px;display:flex;flex-direction:column;gap:14px;flex:1;}
+  .params{background:#131313;border:1px solid #222;border-radius:12px;padding:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px 12px;font-size:13px;}
+  .params b{color:var(--muted);font-weight:400;font-size:11px;display:block;}
+  .params span{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .steps{display:flex;gap:4px;}
+  .step{flex:1;height:6px;border-radius:3px;background:#1c1c1c;transition:background .2s;}
+  .step.active{background:#fff;}
+  .step.done{background:#444;}
+  .step.heat.active{background:var(--heat);}
+  .step.pause.active{background:var(--pause);}
+  .step.weld.active{background:var(--weld);}
+  .step.cool.active{background:var(--cool);}
+  .phase-box{flex:1;min-height:220px;padding:24px;border-radius:20px;background:#131313;border:2px solid #1e1e1e;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;transition:border-color .2s;}
+  .phase-box.heat{border-color:var(--heat);}
+  .phase-box.pause{border-color:var(--pause);}
+  .phase-box.weld{border-color:var(--weld);}
+  .phase-box.cool{border-color:var(--cool);}
+  .phase-name{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+  .timer{font-size:clamp(64px,22vw,110px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
+  .phase-box.warn .timer{animation:flash 1s infinite;}
+  @keyframes flash{50%{opacity:.35;}}
+  .bar{width:100%;max-width:320px;height:8px;background:#1c1c1c;border-radius:4px;overflow:hidden;}
+  .bar-fill{height:100%;width:0;background:#fff;transition:width .2s linear;}
+  .phase-box.heat .bar-fill{background:var(--heat);}
+  .phase-box.pause .bar-fill{background:var(--pause);}
+  .phase-box.weld .bar-fill{background:var(--weld);}
+  .phase-box.cool .bar-fill{background:var(--cool);}
+  .controls{display:flex;gap:12px;}
+  button{flex:1;padding:18px;font-size:17px;font-weight:700;border-radius:14px;border:1px solid #2a2a2a;background:#1c1c1c;color:#fff;cursor:pointer;}
+  button:active{background:#2a2a2a;}
+  button.primary{background:#2563eb;border-color:#2563eb;}
+  button.primary:active{background:#1d4ed8;}
+  button:disabled{opacity:.35;}
+  .hint{font-size:13px;color:var(--muted);text-align:center;padding:0 8px;min-height:2.6em;line-height:1.3;}
+  .disclaimer{font-size:10px;color:#555;text-align:center;padding-bottom:6px;}
+  .log-view{display:none;padding:16px;flex-direction:column;gap:12px;}
+  .log-view.active{display:flex;}
+  .log-entry{background:#131313;border:1px solid #222;border-radius:12px;padding:12px;font-size:13px;line-height:1.4;}
+  .log-entry .log-date{color:var(--muted);font-size:11px;margin-bottom:6px;}
+  .log-entry .log-params{display:flex;gap:12px;flex-wrap:wrap;font-variant-numeric:tabular-nums;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Сварка ПНД</h1>
+  <div class="field"><label>Ø, мм</label><select id="dia"></select></div>
+  <div class="field"><label>SDR</label><select id="sdr"></select></div>
+  <div class="field"><label>Темп.</label><select id="tempRange"></select></div>
+</header>
+
+<main>
+  <div class="params">
+    <div><b>Стенка</b><span id="p_e">—</span></div>
+    <div><b>Нагрев</b><span id="p_heat">—</span></div>
+    <div><b>Техпауза</b><span id="p_pause">—</span></div>
+    <div><b>Осадка</b><span id="p_weld">—</span></div>
+    <div><b>Охлажд.</b><span id="p_cool">—</span></div>
+    <div><b>Диапазон</b><span id="p_tempLabel">—</span></div>
+  </div>
+
+  <div class="steps" id="steps"></div>
+  <div class="phase-box" id="box">
+    <div class="phase-name" id="phaseName">готов к работе</div>
+    <div class="timer" id="timer">00:00</div>
+    <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+  </div>
+  <div class="hint" id="hint">Отторцуй стык, выставь температуру по профилю машины — потом жми «Начать»</div>
+  <div class="controls">
+    <button id="btnReset" disabled>Сброс</button>
+    <button id="btnStart" class="primary">Начать</button>
+  </div>
+  <button id="btnSave" style="margin-top:2px;" disabled>💾 Сохранить стык</button>
+  <button id="btnLog" style="margin-top:2px;">📖 Журнал стыков</button>
+  <div class="disclaimer">Параметры расчётные (DVS 2207-1 / ISO 21307). Сверяй с паспортом машины.</div>
+</main>
+
+<div class="log-view" id="logView">
+  <h2 style="margin:0;font-size:17px;">Журнал стыков</h2>
+  <div id="logList"></div>
+  <button id="btnBack">Назад</button>
+</div>
+
+<script>
+// ============ ТЕМПЕРАТУРНАЯ ПОПРАВКА (DVS 2207-1) ============
+// На время охлаждения. Ниже 15°C — уменьшается, выше 25°C — увеличивается.
+const TEMP_CORRECTION = [
+  {key:'cold', label:'≤ 15°C',  factor: 0.8},
+  {key:'norm', label:'15–25°C', factor: 1.0},
+  {key:'hot',  label:'25–40°C', factor: 1.2},
+];
+const tempSel = document.getElementById('tempRange');
+TEMP_CORRECTION.forEach(t => tempSel.add(new Option(t.label, t.key)));
+tempSel.value = 'norm';
+
+const DIAMETERS = [20,25,32,40,50,63,75,90,110,125,140,160,180,200,225,250,280,315,355,400];
+const SDRS = [33,26,17,11,9,7.4,6];
+const diaSel = document.getElementById('dia');
+const sdrSel = document.getElementById('sdr');
+DIAMETERS.forEach(d => diaSel.add(new Option(d, d)));
+SDRS.forEach(s => sdrSel.add(new Option('SDR ' + s, s)));
+diaSel.value = 110;
+sdrSel.value = 11;
+
+function calc() {
+  const D = +diaSel.value;
+  const sdr = +sdrSel.value;
+  const e = D / sdr;
+  const t = TEMP_CORRECTION.find(x => x.key === tempSel.value) || TEMP_CORRECTION[1];
+
+  // Формулы DVS 2207-1 / ISO 21307
+  const heat  = Math.max(5, Math.round(10 * e));                       // сек
+  const pause = Math.min(12, Math.max(4, Math.round(4 + 0.4 * e)));    // сек
+  const weld  = Math.min(8,  Math.max(3, Math.round(3 + 0.3 * e)));    // сек
+  const cool  = Math.round(60 * e * t.factor);                         // сек
+
+  return { D, sdr, e, heat, pause, weld, cool, tempLabel: t.label };
+}
+
+let P = calc();
+function renderParams() {
+  P = calc();
+  document.getElementById('p_e').textContent    = P.e.toFixed(1) + ' мм';
+  document.getElementById('p_heat').textContent = P.heat + ' с';
+  document.getElementById('p_pause').textContent= P.pause + ' с';
+  document.getElementById('p_weld').textContent = P.weld + ' с';
+  document.getElementById('p_cool').textContent = Math.round(P.cool/60) + ' мин';
+  document.getElementById('p_tempLabel').textContent = P.tempLabel;
+}
+[diaSel, sdrSel, tempSel].forEach(el => el.onchange = () => { renderParams(); reset(); });
+renderParams();
+
+// ============ ТАЙМЕР ============
+const PHASES = [
+  {key:'heat',  name:'Нагрев',     sec:()=>P.heat,  color:'heat'},
+  {key:'pause', name:'Техпауза',   sec:()=>P.pause, color:'pause'},
+  {key:'weld',  name:'Осадка',     sec:()=>P.weld,  color:'weld'},
+  {key:'cool',  name:'Охлаждение', sec:()=>P.cool,  color:'cool'},
+];
+const HINTS = {
+  heat:  'Прижми нагреватель, держи давление по паспорту машины',
+  pause: 'МАКСИМАЛЬНО БЫСТРО: убери нагреватель, своди трубы',
+  weld:  'Сведи и держи давление осадки до конца таймера',
+  cool:  'Держи давление. НЕ трогай зажимы до конца охлаждения',
+};
+
+const box = document.getElementById('box');
+const phaseNameEl = document.getElementById('phaseName');
+const timerEl = document.getElementById('timer');
+const hintEl = document.getElementById('hint');
+const btnStart = document.getElementById('btnStart');
+const btnReset = document.getElementById('btnReset');
+const btnSave  = document.getElementById('btnSave');
+const stepsEl = document.getElementById('steps');
+const barFill = document.getElementById('barFill');
+
+let phaseIdx = -1;
+let remaining = 0;
+let total = 1;
+let running = false;
+let intervalId = null;
+let endAt = 0;
+let preWarned = false;
+
+function drawSteps() {
+  stepsEl.innerHTML = '';
+  PHASES.forEach((ph, i) => {
+    const el = document.createElement('div');
+    el.className = 'step ' + ph.color + (i === phaseIdx ? ' active' : i < phaseIdx ? ' done' : '');
+    stepsEl.appendChild(el);
+  });
+}
+function fmt(sec) {
+  const s = Math.max(0, Math.ceil(sec));
+  return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+}
+function updateDisplay() {
+  timerEl.textContent = fmt(remaining);
+  barFill.style.width = (total ? (remaining / total) * 100 : 0) + '%';
+  box.classList.toggle('warn', running && remaining <= 3 && remaining > 0);
+}
+
+// звук
+let audioCtx;
+function ensureAudio() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  } catch(e) { return null; }
+}
+function beep(freq = 880, dur = 0.15, vol = 0.3) {
+  const ac = ensureAudio(); if (!ac) return;
+  const o = ac.createOscillator(); const g = ac.createGain();
+  o.frequency.value = freq; o.type = 'sine';
+  g.gain.setValueAtTime(vol, ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+  o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + dur);
+}
+function alarm() {
+  beep(880,0.15,0.35); setTimeout(()=>beep(1100,0.15,0.35),180); setTimeout(()=>beep(1320,0.28,0.35),360);
+  if (navigator.vibrate) navigator.vibrate([200,100,200,100,350]);
+}
+
+function tick() {
+  if (!running) return;
+  const rem = Math.max(0, (endAt - performance.now()) / 1000);
+  remaining = rem;
+  updateDisplay();
+  if (!preWarned && total > 5 && rem > 0 && rem <= 3.05) { preWarned = true; beep(700,0.08,0.15); }
+  if (rem <= 0) { running = false; stopTicking(); alarm(); startPhase(phaseIdx + 1); }
+}
+function startTicking() { stopTicking(); intervalId = setInterval(tick, 150); }
+function stopTicking() { if (intervalId) { clearInterval(intervalId); intervalId = null; } }
+
+function startPhase(i) {
+  phaseIdx = i;
+  if (i >= PHASES.length) { finish(); return; }
+  const ph = PHASES[i];
+  total = ph.sec(); remaining = total;
+  endAt = performance.now() + total * 1000;
+  preWarned = false; running = true;
+  box.className = 'phase-box ' + ph.color;
+  phaseNameEl.textContent = ph.name;
+  hintEl.textContent = HINTS[ph.key];
+  btnStart.textContent = 'Стоп';
+  btnReset.disabled = false;
+  btnSave.disabled = false;
+  drawSteps(); updateDisplay(); startTicking();
+}
+function finish() {
+  running = false; stopTicking();
+  box.className = 'phase-box';
+  phaseNameEl.textContent = 'готово';
+  timerEl.textContent = '✓';
+  barFill.style.width = '0%';
+  hintEl.textContent = 'Снимай зажимы и проверяй стык по регламенту';
+  btnStart.textContent = 'Новый стык';
+  btnStart.disabled = false;
+  phaseIdx = PHASES.length;
+  drawSteps();
+  if (navigator.vibrate) navigator.vibrate([100,80,100,80,400]);
+  // автосохранение с подтверждением
+  if (confirm('Стык завершён. Сохранить в журнал?')) saveToLog();
+}
+function reset() {
+  running = false; stopTicking();
+  phaseIdx = -1; remaining = 0; total = 1; endAt = 0; preWarned = false;
+  box.className = 'phase-box';
+  phaseNameEl.textContent = 'готов к работе';
+  timerEl.textContent = '00:00';
+  barFill.style.width = '0%';
+  hintEl.textContent = 'Отторцуй стык, выставь температуру по профилю машины — потом жми «Начать»';
+  btnStart.textContent = 'Начать';
+  btnStart.disabled = false;
+  btnReset.disabled = true;
+  btnSave.disabled = true;
+  drawSteps();
+}
+btnStart.onclick = () => {
+  ensureAudio(); requestWakeLock();
+  if (running) { running = false; stopTicking(); btnStart.textContent = 'Продолжить'; hintEl.textContent = 'Пауза.'; return; }
+  if (phaseIdx === -1 || phaseIdx >= PHASES.length) { reset(); startPhase(0); }
+  else { running = true; endAt = performance.now() + remaining * 1000; preWarned = false; btnStart.textContent = 'Стоп'; startTicking(); }
+};
+btnReset.onclick = reset;
+drawSteps();
+
+// Wake Lock
+let wakeLock = null;
+async function requestWakeLock() {
+  try { if ('wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } } catch(e){}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && running) requestWakeLock(); });
+
+// ============ ЖУРНАЛ СТЫКОВ ============
+const STORAGE_KEY = 'pnd_welding_log_v2';
+function getLog() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+function saveToLog() {
+  const log = getLog();
+  const entry = {
+    id: Date.now(),
+    date: new Date().toISOString(),
+    standard: 'DVS 2207-1',
+    D: P.D, sdr: P.sdr, e: +P.e.toFixed(1),
+    temp: P.tempLabel,
+    heat: P.heat, pause: P.pause, weld: P.weld, cool: P.cool,
+  };
+  log.unshift(entry);
+  if (log.length > 200) log.length = 200;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(log));
+  btnSave.disabled = true;
+  hintEl.textContent = 'Запись добавлена в журнал';
+}
+btnSave.onclick = saveToLog;
+
+const logView = document.getElementById('logView');
+const logList = document.getElementById('logList');
+const mainEl = document.querySelector('main');
+document.getElementById('btnLog').onclick = () => {
+  const log = getLog();
+  logList.innerHTML = log.length === 0 ? '<p style="color:#888">Журнал пуст.</p>' : log.map(e => `
+    <div class="log-entry">
+      <div class="log-date">${new Date(e.date).toLocaleString('ru-RU')} · ${e.standard || 'DVS 2207-1'}</div>
+      <div class="log-params">
+        <span>Ø${e.D} SDR${e.sdr} (${e.e} мм)</span>
+        <span>Нагрев: ${e.heat}с</span>
+        <span>Пауза: ${e.pause}с</span>
+        <span>Осадка: ${e.weld}с</span>
+        <span>Охлажд.: ${(e.cool/60).toFixed(1)}м</span>
+        <span>Темп.: ${e.temp}</span>
+      </div>
+    </div>
+  `).join('');
+  logView.classList.add('active');
+  mainEl.style.display = 'none';
+};
+document.getElementById('btnBack').onclick = () => {
+  logView.classList.remove('active');
+  mainEl.style.display = 'flex';
+};
+
+// PWA
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+</script>
+</body>
+</html>
