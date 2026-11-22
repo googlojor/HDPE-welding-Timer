@@ -18,7 +18,7 @@
 | *[Скриншот 1]* | *[Скриншот 2]* | *[Скриншот 3]* |
 
 ## 📦 Скачать
-Скачать последнюю версию APK для Android можно в разделе **[Releases](https://github.com/ВАШ_НИК/HDPE-welding-Timer/releases/latest)**.
+Скачать последнюю версию APK для Android можно в разделе **[Releases](https://github.com/googlojor/HDPE-welding-Timer/releases/latest)**.
 
 ## 🚀 История изменений (Changelog)
 
