@@ -1,5 +1,4 @@
-<img width="720" height="1600" alt="Screenshot_2026-11-22-18-19-07-342_com zhabr pndtimer" src="https://github.com/user-attachments/assets/cc9409b5-be17-4c26-bc29-1b43742eaea1" />
-<img width="720" height="1600" alt="Screenshot_2026-11-22-18-19-21-543_com zhabr pndtimer" src="https://github.com/user-attachments/assets/e263aef1-3da1-41e4-b702-7c4a785623b8" />
+
 # 🛠️ ПНД Таймер (HDPE Welding Timer)
 
 Мобильное приложение-помощник для сварщиков полиэтиленовых труб (ПНД). Рассчитывает параметры сварки, ведет пошаговый таймер и сохраняет журнал стыков. 
@@ -16,7 +15,7 @@
 ## 📱 Скриншоты
 *(Сюда можно добавить скриншоты экрана настроек и экрана таймера)*
 | Экран настройки | Экран таймера | Журнал |
-| :---: | :---: | :---: |
+| :<img width="720" height="1600" alt="Screenshot_2026-11-22-18-19-07-342_com zhabr pndtimer" src="https://github.com/user-attachments/assets/cc9409b5-be17-4c26-bc29-1b43742eaea1" />---: |<img width="720" height="1600" alt="Screenshot_2026-11-22-18-19-21-543_com zhabr pndtimer" src="https://github.com/user-attachments/assets/e263aef1-3da1-41e4-b702-7c4a785623b8" /> | <img width="720" height="1600" alt="Screenshot_2026-11-22-18-24-59-922_com zhabr pndtimer" src="https://github.com/user-attachments/assets/7146b7a6-a3d8-4b33-bf24-bb0c71a1d5e3" />:---: |
 | *[Скриншот 1]* | *[Скриншот 2]* | *[Скриншот 3]* |
 
 ## 📦 Скачать
